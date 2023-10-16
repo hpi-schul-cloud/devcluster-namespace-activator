@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Namespace Activator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #1e1e1e; /* Dark background color */
+            color: #ffffff; /* Light text color */
+            overflow: hidden; /* Hide overflow for the animation effect */
+        }
+
+        h1 {
+            color: #00bfff; /* Highlight color */
+        }
+
+        form {
+            background-color: #2a2a2a; /* Slightly lighter background color */
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            transition: transform 0.5s ease; /* Smooth transition for the form */
+        }
+
+        form.enlarge {
+            transform: scale(2); /* Enlarge the form on animation */
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #ffffff; /* Light text color */
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #555; /* Darker border color */
+            border-radius: 5px;
+            color: #000000; /* Dark text color */
+            background-color: #ffffff; /* Lighter background color */
+        }
+
+        input[type="submit"] {
+            padding: 10px 20px;
+            font-size: 16px;
+            color: #ffffff; /* Light text color */
+            background-color: #007BFF;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        input[type="submit"]:hover {
+            background-color: #0056b3;
+        }
+
+        input[type="submit"]:active {
+            animation: bloom 0.5s ease; /* Bloom animation on button click */
+            animation-fill-mode: forwards;
+        }
+
+        @keyframes bloom {
+            0% {
+                transform: scale(1);
+            }
+            100% {
+                transform: scale(10);
+            }
+        }
+        .visually-hidden {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            margin: -1px;
+            padding: 0;
+            overflow: hidden;
+            clip-path: polygon(0 0, 0 0, 0 0);
+            clip: rect(0 0 0 0);
+            white-space: nowrap;
+            border: 0;
+        }
+    </style>
+</head>
+<body>
+<form method="post">
+    <label for="namespace">Namespace:</label>
+    <span id="namespace-description" class="visually-hidden">The namespace you want to activate</span>
+    <input type="text" id="namespace" name="namespace" required aria-label="Namespace" aria-describedby="namespace-description" value="{defaultNamespace}"><br>
+    <input type="submit" id="activate" name="submitType" value="Activate">
+    <input type="submit" id="deactivate" name="submitType" value="Deactivate">
+</form>
+
+</body>
+</html>
