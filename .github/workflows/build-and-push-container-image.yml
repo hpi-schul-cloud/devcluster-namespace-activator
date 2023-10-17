@@ -10,6 +10,10 @@ on:
     tags:
       - '*'
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -37,4 +41,4 @@ jobs:
         shell: bash
         run: ./mvnw install -Dnative -Dquarkus.native.container-build=true -Dquarkus.container-image.build=true -Dquarkus.container-image.registry=ghcr.io -Dquarkus.container-image.group=hpi-schul-cloud -Dquarkus.container-image.name=devcluster-namespace-activator -Dquarkus.container-image.tag=${{ env.git_ref_name }}
       - name: "push image"
-        run: docker push ghcr.io/${{ github.actor }}/hpi-schul-cloud/devcluster-namespace-activator:${{ env.git_ref_name }}
+        run: docker push ghcr.io/hpi-schul-cloud/devcluster-namespace-activator:${{ env.git_ref_name }}
