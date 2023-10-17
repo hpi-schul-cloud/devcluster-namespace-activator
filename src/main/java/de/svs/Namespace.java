@@ -4,6 +4,7 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.IndexOptions;
 import com.mongodb.client.model.UpdateOptions;
+import com.mongodb.client.result.UpdateResult;
 import io.quarkus.logging.Log;
 import io.quarkus.qute.CheckedTemplate;
 import io.quarkus.qute.TemplateInstance;
@@ -35,14 +36,14 @@ public class Namespace {
 
     @CheckedTemplate
     public static class Templates {
-        public static native TemplateInstance namespace(String defaultNamespace);
+        public static native TemplateInstance namespace(String defaultNamespace, String message);
     }
 
 
     @GET
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance get(@QueryParam("namespace") Optional<String> namespace) {
-        return Templates.namespace(namespace.orElse(""));
+        return Templates.namespace(namespace.orElse(""), null);
     }
 
     @POST
@@ -56,12 +57,18 @@ public class Namespace {
             default -> throw new IllegalStateException("Unexpected value: " + submitType);
         };
 
-        getCollection().updateOne(
+        UpdateResult updateResult = getCollection().updateOne(
                 and(eq("name", namespace), exists("activatedUntil", true)),
                 set("activatedUntil", activatedUntil));
 
-        Log.info("namespace " + namespace + " is now activated until " + activatedUntil);
-        return Templates.namespace(namespace);
+        final String message;
+        if (updateResult.getModifiedCount() > 0) {
+            message = "namespace " + namespace + " is now activated until " + activatedUntil;
+        } else {
+            message = namespace + " not found";
+        }
+        Log.info(message);
+        return Templates.namespace(namespace, message);
     }
 
     @PUT
