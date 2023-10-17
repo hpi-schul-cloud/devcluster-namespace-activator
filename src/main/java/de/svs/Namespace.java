@@ -2,6 +2,7 @@ package de.svs;
 
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.IndexOptions;
 import com.mongodb.client.model.UpdateOptions;
 import io.quarkus.logging.Log;
 import io.quarkus.qute.CheckedTemplate;
@@ -59,6 +60,7 @@ public class Namespace {
                 and(eq("name", namespace), exists("activatedUntil", true)),
                 set("activatedUntil", activatedUntil));
 
+        Log.info("namespace " + namespace + " is now activated until " + activatedUntil);
         return Templates.namespace(namespace);
     }
 
@@ -72,11 +74,14 @@ public class Namespace {
                 set("activatedUntil", activatedUntil),
                 new UpdateOptions().upsert(true));
         dto.setActivatedUntil(activatedUntil);
+        Log.info("namespace " + dto.getName() + " is now activated until " + activatedUntil);
         return dto;
     }
 
     private MongoCollection<Document> getCollection() {
-        return mongoClient.getDatabase(mongoDbName).getCollection("namespaces");
+        MongoCollection<Document> namespaces = mongoClient.getDatabase(mongoDbName).getCollection("namespaces");
+        namespaces.createIndex(eq("name", 1), new IndexOptions().unique(true));
+        return namespaces;
     }
 
 }
