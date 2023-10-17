@@ -1,0 +1,40 @@
+name: Build & Push container image
+
+on:
+  push:
+    branches: [ main ]
+    tags:
+      - '*'
+  workflow_dispatch:
+  create:
+    tags:
+      - '*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Build:checkout"
+        uses: actions/checkout@v4
+      - name: "Extract git ref"
+        id: extract_ref
+        shell: bash
+        run: echo "git_ref_name=$(echo ${GITHUB_REF##*/})" >> $GITHUB_ENV
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: 17
+          distribution: temurin
+          cache: maven
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: "build image"
+        id: build_image
+        shell: bash
+        run: ./mvnw install -Dnative -Dquarkus.native.container-build=true -Dquarkus.container-image.build=true -Dquarkus.container-image.registry=ghcr.io -Dquarkus.container-image.group=hpi-schul-cloud -Dquarkus.container-image.name=devcluster-namespace-activator -Dquarkus.container-image.tag=${{ env.git_ref_name }}
+      - name: "push image"
+        run: docker push ghcr.io/${{ github.actor }}/hpi-schul-cloud/devcluster-namespace-activator:${{ env.git_ref_name }}
