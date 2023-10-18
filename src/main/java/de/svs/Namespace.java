@@ -42,8 +42,11 @@ public class Namespace {
 
     @GET
     @Produces(MediaType.TEXT_HTML)
-    public TemplateInstance get(@QueryParam("namespace") Optional<String> namespace) {
-        return Templates.namespace(namespace.orElse(""), null);
+    public TemplateInstance get(@QueryParam("namespace") Optional<String> namespace, @QueryParam("redirected-from-503") Optional<Boolean> gotRedirectedFrom503) {
+        return Templates.namespace(namespace.orElse(""),
+                gotRedirectedFrom503.filter(Boolean::booleanValue)
+                        .map(b -> "You got here because your namespace appears to be deactivated")
+                        .orElse(null));
     }
 
     @POST
