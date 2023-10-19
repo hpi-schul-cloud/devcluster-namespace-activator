@@ -71,6 +71,8 @@ public class Namespace {
         final String message;
         if (updateResult.getModifiedCount() > 0) {
             message = "namespace " + namespace + " is now activated until " + activatedUntil;
+        } else if (activatedUntil.equals(Instant.EPOCH)) {
+            message = "namespace " + namespace + " has been deactivated";
         } else {
             message = namespace + " not found";
         }
