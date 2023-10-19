@@ -34,16 +34,20 @@ public class Namespace {
     @ConfigProperty(name = "namespace.activationHours", defaultValue = "48")
     int activationHours;
 
+    @ConfigProperty(name = "externalHostName", defaultValue = "localhost")
+    String externalHostName;
+
     @CheckedTemplate
     public static class Templates {
-        public static native TemplateInstance namespace(String defaultNamespace, String message);
+        public static native TemplateInstance namespace(String host, String defaultNamespace, String message);
     }
 
 
     @GET
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance get(@QueryParam("namespace") Optional<String> namespace, @QueryParam("redirected-from-503") Optional<Boolean> gotRedirectedFrom503) {
-        return Templates.namespace(namespace.orElse(""),
+        return Templates.namespace(this.externalHostName,
+                namespace.orElse(""),
                 gotRedirectedFrom503.filter(Boolean::booleanValue)
                         .map(b -> "You got here because your namespace appears to be deactivated")
                         .orElse(null));
@@ -71,7 +75,7 @@ public class Namespace {
             message = namespace + " not found";
         }
         Log.info(message);
-        return Templates.namespace(namespace, message);
+        return Templates.namespace(this.externalHostName, namespace, message);
     }
 
     @PUT
