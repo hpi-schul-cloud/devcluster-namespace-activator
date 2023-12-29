@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <title>Namespace Activator</title>
-    <meta property="og:type" content="website" />
-    <meta property="og:title" content="pustekuchen" />
-    <meta property="og:image" content="https://{host}/og/image.gif" />
+    <meta property="og:type" content="website"/>
+    <meta property="og:title" content="pustekuchen"/>
+    <meta property="og:image" content="https://{host}/og/image.gif"/>
     <style>
         body {
             background-color: black;
@@ -55,6 +55,7 @@
         input[type="submit"]:hover {
             background-color: #2ecc71;
         }
+
         #message-box {
             background-color: #c02a2a;
             color: black;
@@ -69,23 +70,80 @@
             margin: 0;
         }
 
+        #liveConsole {
+            display: none;
+            width: 50%;
+            margin: 0 auto;
+            background-color: #1c1c1c;
+            color: limegreen;
+            padding: 10px;
+            border: 1px solid limegreen;
+            border-radius: 5px;
+            /* keep line breaks */
+            white-space: pre-line;
+        }
+
     </style>
 </head>
 <body>
 {#if message}
-<div id="message-box">
+    <div id="message-box">
     <p id="message-text">{message}</p>
-</div>
+    </div>
 {/if}
 
 
 <form method="post">
     <label for="namespace">Namespace:</label>
     <span id="namespace-description" class="visually-hidden">The namespace you want to activate or deactivate</span>
-    <input type="text" id="namespace" name="namespace" required aria-label="Namespace" aria-describedby="namespace-description" value="{defaultNamespace}"><br>
-    <input type="submit" id="activate" name="submitType" value="Activate">
-    <input type="submit" id="deactivate" name="submitType" value="Deactivate">
+    <input type="text" id="namespace" name="namespace" required aria-label="Namespace"
+           aria-describedby="namespace-description" value="{defaultNamespace}"><br>
+    <input type="hidden" id="action" name="action" value="Activate">
+    <input type="submit" id="activate" name="activate" value="Activate" onclick="document.getElementById('action').value='ACTIVATE'">
+    <input type="submit" id="deactivate" name="deactivate" value="Deactivate" onclick="document.getElementById('action').value='DEACTIVATE'">
 </form>
+
+<div id="liveConsole"></div>
+
+<script>
+
+    function displayMessage(date, message) {
+        const liveConsole = document.getElementById('liveConsole');
+        liveConsole.textContent += date.toISOString() + ': ' + message + '\n';
+    }
+
+    function setupSSE() {
+        const liveConsole = document.getElementById('liveConsole');
+        liveConsole.style.display = 'block';
+
+        displayMessage(new Date(), "you will be automatically redirected when your namespace becomes ready")
+
+        const eventSource = new EventSource('namespace/status?namespace={defaultNamespace}');
+
+        eventSource.addEventListener('namespace-status', (e) => {
+            const eventData = JSON.parse(e.data);
+            console.log('sse:' + e.data)
+            displayMessage(new Date(eventData.date), eventData.message);
+            // Check if the event type is the one you are looking for
+            if (eventData.finalMessage === true && eventData.success === true) {
+                displayMessage(new Date(), "redirecting to" + eventData.namespaceBaseUri);
+                eventSource.close()
+                window.location.href = eventData.namespaceBaseUri;
+            } else if (eventData.finalMessage === true && eventData.success !== true) {
+                displayMessage(new Date(), "something went wrong, check your namespace");
+                eventSource.close()
+            } else {
+                console.log('continue waiting')
+            }
+        });
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        {#if pollNamespace}
+            setupSSE()
+        {/if}
+    })
+</script>
 
 </body>
 </html>
