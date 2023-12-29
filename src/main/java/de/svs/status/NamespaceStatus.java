@@ -40,7 +40,7 @@ public class NamespaceStatus {
                 if (available) {
                     return new StatusDto("available!", baseUri, true, true);
                 } else {
-                    return new StatusDto("...", baseUri, true, false);
+                    return new StatusDto("/version is available ...", baseUri, true, false);
                 }
             } else {
                 return new StatusDto("/version returned 404 ...", baseUri, true, false);

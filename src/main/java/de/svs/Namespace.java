@@ -24,9 +24,7 @@ import org.jboss.resteasy.reactive.RestStreamElementType;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Locale;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.mongodb.client.model.Filters.*;
@@ -78,12 +76,12 @@ public class Namespace {
     @POST
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.TEXT_HTML)
-    public TemplateInstance post(@FormParam("namespace") String namespace, @FormParam("submitType") String submitType) {
-        logger.info("post called " + namespace + " " + submitType);
-        final Instant activatedUntil = switch (submitType.toLowerCase(Locale.ENGLISH)) {
-            case "activate" -> Instant.now().plus(activationHours, ChronoUnit.HOURS);
-            case "deactivate" -> Instant.EPOCH;
-            default -> throw new IllegalStateException("Unexpected value: " + submitType);
+    public TemplateInstance post(@FormParam("namespace") String namespace, @FormParam("action") Action action) {
+        logger.info("post called " + namespace + " " + action);
+
+        final Instant activatedUntil = switch (action) {
+            case ACTIVATE -> Instant.now().plus(activationHours, ChronoUnit.HOURS);
+            case DEACTIVATE -> Instant.EPOCH;
         };
 
         UpdateResult updateResult = getCollection().updateOne(
@@ -92,12 +90,14 @@ public class Namespace {
 
         final boolean pollNamespace;
         final String message;
-        if (updateResult.getModifiedCount() > 0) {
-            message = "namespace " + namespace + " is now activated until " + activatedUntil;
-            pollNamespace = true;
-        } else if (activatedUntil.equals(Instant.EPOCH)) {
-            message = "namespace " + namespace + " has been deactivated";
-            pollNamespace = false;
+        if (updateResult.getMatchedCount() > 0) {
+            if (action == Action.ACTIVATE) {
+                message = "namespace " + namespace + " is now activated until " + activatedUntil;
+                pollNamespace = true;
+            } else {
+                message = "namespace " + namespace + " has been deactivated";
+                pollNamespace = false;
+            }
         } else {
             message = namespace + " not found";
             pollNamespace = false;

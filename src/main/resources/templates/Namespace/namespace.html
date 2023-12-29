@@ -98,8 +98,9 @@
     <span id="namespace-description" class="visually-hidden">The namespace you want to activate or deactivate</span>
     <input type="text" id="namespace" name="namespace" required aria-label="Namespace"
            aria-describedby="namespace-description" value="{defaultNamespace}"><br>
-    <input type="submit" id="activate" name="submitType" value="Activate">
-    <input type="submit" id="deactivate" name="submitType" value="Deactivate">
+    <input type="hidden" id="action" name="action" value="Activate">
+    <input type="submit" id="activate" name="activate" value="Activate" onclick="document.getElementById('action').value='ACTIVATE'">
+    <input type="submit" id="deactivate" name="deactivate" value="Deactivate" onclick="document.getElementById('action').value='DEACTIVATE'">
 </form>
 
 <div id="liveConsole"></div>
