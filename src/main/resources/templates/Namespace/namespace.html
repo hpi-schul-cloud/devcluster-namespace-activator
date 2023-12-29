@@ -106,16 +106,16 @@
 
 <script>
 
-    function displayMessage(date = new Date(), message) {
+    function displayMessage(date, message) {
         const liveConsole = document.getElementById('liveConsole');
-        liveConsole.textContent += new Date(date).toISOString() + ': ' + message + '\n';
+        liveConsole.textContent += date.toISOString() + ': ' + message + '\n';
     }
 
     function setupSSE() {
         const liveConsole = document.getElementById('liveConsole');
         liveConsole.style.display = 'block';
 
-        displayMessage("you will be automatically redirected when your namespace becomes ready")
+        displayMessage(new Date(), "you will be automatically redirected when your namespace becomes ready")
 
         const eventSource = new EventSource('namespace/status?namespace={defaultNamespace}');
 
