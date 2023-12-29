@@ -142,7 +142,6 @@ public class Namespace {
     private MongoCollection<Document> getCollection() {
         MongoCollection<Document> namespaces = mongoClient.getDatabase(mongoDbName).getCollection("namespaces");
         namespaces.createIndex(eq("name", 1), new IndexOptions().unique(true));
-        namespaces.createIndex(eq("activatedUntil", 1), new IndexOptions().expireAfter(30L, TimeUnit.DAYS));
         return namespaces;
     }
 
