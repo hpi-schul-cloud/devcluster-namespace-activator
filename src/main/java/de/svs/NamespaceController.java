@@ -116,8 +116,9 @@ public class NamespaceController {
         Optional<Namespace> namespaceEntity = Namespace.findByName(namespace);
         if (namespaceEntity.isPresent()) {
             logger.info("extending activation time of " + namespace);
+            Instant newActivatedUntil = getActivatedUntil();
             Namespace ns = namespaceEntity.get();
-            ns.activatedUntil = getActivatedUntil();
+            ns.activatedUntil = (ns.activatedUntil.isAfter(newActivatedUntil) ? ns.activatedUntil : newActivatedUntil);
             ns.update();
             return RestMulti.fromMultiData(namespaceActivationWaiter.waitForNamespaceToBecomeAvailable(namespace))
                     .status(200)

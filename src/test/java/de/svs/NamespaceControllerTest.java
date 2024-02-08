@@ -16,8 +16,7 @@ import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
-import static java.time.temporal.ChronoUnit.DAYS;
-import static java.time.temporal.ChronoUnit.SECONDS;
+import static java.time.temporal.ChronoUnit.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 import static org.mockito.ArgumentMatchers.any;
@@ -106,6 +105,28 @@ class NamespaceControllerTest {
         assertThat(nsByName).isPresent();
         assertThat(nsByName.get().name).isEqualTo(namespaceName);
         assertThat(nsByName.get().activatedUntil).isCloseTo(Instant.now().plus(2, DAYS), within(1, SECONDS));
+        assertThat(multi.getStatus()).isEqualTo(200);
+        subscriber.assertCompleted().awaitItems(0).assertItems();
+    }
+
+
+    @Test
+    void extendAndWaitWithLaterActivatedUntilAlreadySet() {
+        String namespaceName = UUID.randomUUID().toString();
+        Instant activatedUntil = Instant.now().plus(666, DAYS);
+        Namespace namespace = new Namespace();
+        namespace.name = namespaceName;
+        namespace.activatedUntil = activatedUntil;
+        namespace.persist();
+
+        RestMulti<OutboundSseEvent> multi = namespaceController.extendAndWait(namespaceDto(namespaceName));
+        AssertSubscriber<OutboundSseEvent> subscriber = multi.subscribe().withSubscriber(AssertSubscriber.create(0));
+
+        Optional<Namespace> nsByName = Namespace.findByName(namespaceName);
+        assertThat(nsByName).isPresent();
+        assertThat(nsByName.get().name).isEqualTo(namespaceName);
+        // nanos are lost in mongodb
+        assertThat(nsByName.get().activatedUntil).isCloseTo(activatedUntil, within(1, MILLIS));
         assertThat(multi.getStatus()).isEqualTo(200);
         subscriber.assertCompleted().awaitItems(0).assertItems();
     }
