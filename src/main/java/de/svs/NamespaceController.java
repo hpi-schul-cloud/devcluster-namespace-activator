@@ -86,7 +86,7 @@ public class NamespaceController {
     }
 
 
-    @PUT
+    @POST
     @Path("/createIfNotExistsAndWait")
     @RestStreamElementType(MediaType.TEXT_PLAIN)
     public RestMulti<OutboundSseEvent> createIfNotExistsAndWait(NamespaceDto dto) {
@@ -131,7 +131,7 @@ public class NamespaceController {
         }
     }
 
-    @POST
+    @PUT
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public NamespaceDto createNamespaceEntry(NamespaceDto dto) {
