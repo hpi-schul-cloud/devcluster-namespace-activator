@@ -133,7 +133,7 @@ public class NamespaceController {
 
     }
 
-    @PUT
+    @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public NamespaceDto createNamespaceEntry(NamespaceDto dto) {

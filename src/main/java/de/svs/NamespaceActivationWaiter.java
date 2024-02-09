@@ -24,11 +24,11 @@ public class NamespaceActivationWaiter {
     @ConfigProperty(name = "baseDomain")
     String baseDomain;
 
-    @ConfigProperty(name = "waiter.tries", defaultValue = "30")
+    @ConfigProperty(name = "waiter.tries", defaultValue = "60")
     int tries;
 
-    @ConfigProperty(name = "waiter.delay", defaultValue = "2")
-    int delay;
+    @ConfigProperty(name = "waiter.delayInSeconds", defaultValue = "2")
+    int delayInSeconds;
 
     Multi<OutboundSseEvent> waitForNamespaceToBecomeAvailable(String namespace) {
         AtomicBoolean finalMessageReceived = new AtomicBoolean();
@@ -36,7 +36,7 @@ public class NamespaceActivationWaiter {
         return Multi.createBy()
                 .repeating()
                 .supplier(Unchecked.supplier(() -> new NamespaceStatus(objectMapper, baseDomain).get(namespace)))
-                .withDelay(Duration.ofSeconds(delay))
+                .withDelay(Duration.ofSeconds(delayInSeconds))
                 .until(outboundSseEvent -> finalMessageReceived.getAndSet(outboundSseEvent.finalMessage()))
                 .map(Unchecked.function(statusDto -> sse.newEventBuilder()
                         .name("namespace-status")
