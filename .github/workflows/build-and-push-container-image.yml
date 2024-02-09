@@ -2,7 +2,8 @@ name: Build & Push container image
 
 on:
   push:
-    branches: 
+    branches:
+      - '*'
     tags:
       - '*'
   workflow_dispatch:
