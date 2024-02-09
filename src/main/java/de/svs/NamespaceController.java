@@ -129,8 +129,6 @@ public class NamespaceController {
                     .status(404)
                     .build();
         }
-
-
     }
 
     @POST
