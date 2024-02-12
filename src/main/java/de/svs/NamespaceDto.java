@@ -11,5 +11,6 @@ public class NamespaceDto {
 
     private String name;
     private Instant activatedUntil;
+    private int maxWaitTimeInSeconds = 60;
 
 }

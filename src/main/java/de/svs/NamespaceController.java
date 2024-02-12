@@ -102,7 +102,7 @@ public class NamespaceController {
             ne.name = namespace;
             ne.activatedUntil = getActivatedUntil();
             ne.persist();
-            return RestMulti.fromMultiData(namespaceActivationWaiter.waitForNamespaceToBecomeAvailable(namespace))
+            return RestMulti.fromMultiData(namespaceActivationWaiter.waitForNamespaceToBecomeAvailable(namespace, dto.getMaxWaitTimeInSeconds()))
                     .status(201)
                     .build();
         }
@@ -120,7 +120,7 @@ public class NamespaceController {
             Namespace ns = namespaceEntity.get();
             ns.activatedUntil = (ns.activatedUntil.isAfter(newActivatedUntil) ? ns.activatedUntil : newActivatedUntil);
             ns.update();
-            return RestMulti.fromMultiData(namespaceActivationWaiter.waitForNamespaceToBecomeAvailable(namespace))
+            return RestMulti.fromMultiData(namespaceActivationWaiter.waitForNamespaceToBecomeAvailable(namespace, dto.getMaxWaitTimeInSeconds()))
                     .status(200)
                     .build();
         } else {
@@ -151,7 +151,7 @@ public class NamespaceController {
     @GET()
     @RestStreamElementType(MediaType.TEXT_PLAIN)
     public Multi<OutboundSseEvent> status(@QueryParam("namespace") String namespace) {
-        return namespaceActivationWaiter.waitForNamespaceToBecomeAvailable(namespace);
+        return namespaceActivationWaiter.waitForNamespaceToBecomeAvailable(namespace, 60);
     }
 
 

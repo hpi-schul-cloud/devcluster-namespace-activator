@@ -20,6 +20,7 @@ import static java.time.temporal.ChronoUnit.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.when;
 
 @QuarkusTest
@@ -33,7 +34,7 @@ class NamespaceControllerTest {
     public static void setup() {
         NamespaceActivationWaiter mock = Mockito.mock(NamespaceActivationWaiter.class);
         String namespace = any(String.class);
-        when(mock.waitForNamespaceToBecomeAvailable(namespace)).thenReturn(Multi.createFrom().empty());
+        when(mock.waitForNamespaceToBecomeAvailable(namespace, anyInt())).thenReturn(Multi.createFrom().empty());
         QuarkusMock.installMockForType(mock, NamespaceActivationWaiter.class);
     }
 

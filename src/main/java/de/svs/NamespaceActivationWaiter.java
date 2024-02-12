@@ -24,13 +24,12 @@ public class NamespaceActivationWaiter {
     @ConfigProperty(name = "baseDomain")
     String baseDomain;
 
-    @ConfigProperty(name = "waiter.tries", defaultValue = "60")
-    int tries;
-
     @ConfigProperty(name = "waiter.delayInSeconds", defaultValue = "2")
     int delayInSeconds;
 
-    Multi<OutboundSseEvent> waitForNamespaceToBecomeAvailable(String namespace) {
+    Multi<OutboundSseEvent> waitForNamespaceToBecomeAvailable(String namespace, int maxWaitTimeInSeconds) {
+        int delayInSeconds = 2;
+        int maxTries = maxWaitTimeInSeconds / delayInSeconds;
         AtomicBoolean finalMessageReceived = new AtomicBoolean();
 
         return Multi.createBy()
@@ -43,6 +42,6 @@ public class NamespaceActivationWaiter {
                         .data(String.class, objectMapper.writeValueAsString(statusDto))
                         .build()))
                 .select()
-                .first(tries);
+                .first(maxTries);
     }
 }
