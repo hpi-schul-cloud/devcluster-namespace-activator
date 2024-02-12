@@ -92,7 +92,7 @@ public class NamespaceController {
     public RestMulti<OutboundSseEvent> createIfNotExistsAndWait(NamespaceDto dto) {
         String namespace = dto.getName();
         if (Namespace.findByName(namespace).isPresent()) {
-            logger.info("namespace " + namespace + " already present, won't wait");
+            logger.info("attempted to create namespace " + namespace + " but already present, won't wait");
             return RestMulti.<OutboundSseEvent>fromMultiData(Multi.createFrom().empty())
                     .status(304)
                     .build();
@@ -124,7 +124,7 @@ public class NamespaceController {
                     .status(200)
                     .build();
         } else {
-            logger.info("namespace " + namespace + " not found");
+            logger.info("namespace (" + namespace+ ") to extend activation time has not been not found");
             return RestMulti.<OutboundSseEvent>fromMultiData(Multi.createFrom().empty())
                     .status(404)
                     .build();
