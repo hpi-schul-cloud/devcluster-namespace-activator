@@ -1,13 +1,13 @@
 package de.svs;
 
-import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
+import io.quarkus.test.common.WithTestResource;
 import org.testcontainers.containers.MongoDBContainer;
 
 import java.util.Collections;
 import java.util.Map;
 
-@QuarkusTestResource(QuarkusMongoDbTestResource.ContainerResource.class)
+@WithTestResource(QuarkusMongoDbTestResource.ContainerResource.class)
 public class QuarkusMongoDbTestResource {
     public static class ContainerResource implements QuarkusTestResourceLifecycleManager {
         private MongoDBContainer mongoContainer;

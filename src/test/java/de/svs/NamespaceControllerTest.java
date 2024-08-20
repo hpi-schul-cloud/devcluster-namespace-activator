@@ -1,6 +1,6 @@
 package de.svs;
 
-import io.quarkus.test.common.QuarkusTestResource;
+import io.quarkus.test.common.WithTestResource;
 import io.quarkus.test.junit.QuarkusMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.smallrye.mutiny.Multi;
@@ -24,7 +24,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.when;
 
 @QuarkusTest
-@QuarkusTestResource(QuarkusMongoDbTestResource.ContainerResource.class)
+@WithTestResource(QuarkusMongoDbTestResource.ContainerResource.class)
 class NamespaceControllerTest {
 
     @Inject
