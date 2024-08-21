@@ -6,6 +6,7 @@ import org.bson.codecs.pojo.annotations.BsonId;
 import org.bson.types.ObjectId;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -16,8 +17,19 @@ public class Namespace extends PanacheMongoEntityBase {
     public String name;
     public Instant activatedUntil;
 
+    public static Namespace create(String name, Instant activatedUntil) {
+        Namespace namespace = new Namespace();
+        namespace.name = name;
+        namespace.activatedUntil = activatedUntil;
+        return namespace;
+    }
+
     public static Optional<Namespace> findByName(String name) {
         return find("name", name).singleResultOptional();
+    }
+
+    public static List<Namespace> findByActivatedUntilOlderThan(Instant activatedUntil) {
+        return find("activatedUntil < ?1", activatedUntil).list();
     }
 
     @Override

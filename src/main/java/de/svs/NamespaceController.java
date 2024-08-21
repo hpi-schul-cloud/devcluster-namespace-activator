@@ -21,7 +21,6 @@ public class NamespaceController {
 
     private static final Logger logger = Logger.getLogger(NamespaceController.class);
 
-
     @ConfigProperty(name = "namespace.activationHours", defaultValue = "48")
     int activationHours;
 
