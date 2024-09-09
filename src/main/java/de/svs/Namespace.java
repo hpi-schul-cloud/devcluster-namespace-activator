@@ -6,6 +6,7 @@ import org.bson.codecs.pojo.annotations.BsonId;
 import org.bson.types.ObjectId;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -30,6 +31,15 @@ public class Namespace extends PanacheMongoEntityBase {
 
     public static List<Namespace> findByActivatedUntilOlderThan(Instant activatedUntil) {
         return find("activatedUntil < ?1", activatedUntil).list();
+    }
+
+    public static long countActiveNamespaces() {
+        LocalDateTime now = LocalDateTime.now();
+        return count("activatedUntil > ?1", now);
+    }
+
+    public static long countTotalNamespaces() {
+        return count();
     }
 
     @Override
