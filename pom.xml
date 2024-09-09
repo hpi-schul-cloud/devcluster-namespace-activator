@@ -4,7 +4,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>de.svs</groupId>
   <artifactId>devcluster-namespace-activator</artifactId>
-  <version>2.4</version>
+  <version>2.5-SNAPSHOT</version>
   <properties>
     <compiler-plugin.version>3.13.0</compiler-plugin.version>
     <maven.compiler.release>21</maven.compiler.release>
