@@ -31,7 +31,7 @@ public class DeleteDeactivatedNamespaces {
         List<Namespace> namespacesToDelete = Namespace.findByActivatedUntilOlderThan(thirtyDaysAgo);
         logger.info("found namespaces to delete: " + namespacesToDelete.stream().map(ns -> ns.name).toList());
         for (Namespace namespace : namespacesToDelete) {
-            logger.info("deleting namespace: " + namespace.name);
+            logger.info("deleting namespace: " + namespace.name + " it's last activation time was: " + namespace.activatedUntil);
             io.fabric8.kubernetes.api.model.Namespace k8sNamespace = kubernetesClient.namespaces().withName(namespace.name).get();
             if (k8sNamespace != null) {
                 kubernetesClient.namespaces().withName(namespace.name).delete();

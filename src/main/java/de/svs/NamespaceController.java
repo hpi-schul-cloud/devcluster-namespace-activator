@@ -59,7 +59,6 @@ public class NamespaceController {
 
         final Instant activatedUntil = switch (action) {
             case ACTIVATE -> getActivatedUntil();
-            case DEACTIVATE -> Instant.EPOCH;
         };
 
         Optional<Namespace> nsOp = Namespace.findByName(namespace);
@@ -69,13 +68,8 @@ public class NamespaceController {
             Namespace namespaceEntity = nsOp.get();
             namespaceEntity.activatedUntil = activatedUntil;
             namespaceEntity.update();
-            if (action == Action.ACTIVATE) {
-                message = "namespace " + namespace + " is now activated until " + activatedUntil;
-                pollNamespace = true;
-            } else {
-                message = "namespace " + namespace + " has been deactivated";
-                pollNamespace = false;
-            }
+            message = "namespace " + namespace + " is now activated until " + activatedUntil;
+            pollNamespace = true;
         } else {
             message = namespace + " not found";
             pollNamespace = false;
