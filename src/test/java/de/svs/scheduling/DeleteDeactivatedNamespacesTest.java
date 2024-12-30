@@ -10,12 +10,15 @@ import io.quarkus.test.common.WithTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.kubernetes.client.WithKubernetesTestServer;
 import jakarta.inject.Inject;
+import org.bson.types.ObjectId;
 import org.jetbrains.annotations.NotNull;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 
 import static java.time.temporal.ChronoUnit.DAYS;
+import static java.time.temporal.ChronoUnit.MINUTES;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @WithKubernetesTestServer
@@ -29,19 +32,25 @@ class DeleteDeactivatedNamespacesTest {
     @Inject
     KubernetesClient k8sClient;
 
+    @BeforeEach
+    public void beforeEach() {
+        Namespace.deleteAll();
+        k8sClient.namespaces().delete();
+    }
+
     @Test
-    void deleteDeactivatedNamespaces() {
+    void cleanUpInactiveNamespaces() {
         Instant instantToBeDeleted = Instant.now().minus(300, DAYS);
         Instant justNow = Instant.now();
 
-        Namespace namespaceThatDoesNotExistInK8s = persistNamespace("namespaceThatDoesNotExistInK8s", instantToBeDeleted);
-        Namespace namespaceThatExistInK8s = persistNamespace("namespaceThatExistInK8s", instantToBeDeleted);
-        Namespace freshNamespace = persistNamespace("freshNamespace", justNow);
+        Namespace namespaceThatDoesNotExistInK8s = persistNamespaceWithActivatedUntil("namespaceThatDoesNotExistInK8s", instantToBeDeleted);
+        Namespace namespaceThatExistInK8s = persistNamespaceWithActivatedUntil("namespaceThatExistInK8s", instantToBeDeleted);
+        Namespace freshNamespace = persistNamespaceWithActivatedUntil("freshNamespace", justNow);
 
         createK8sNamespace(namespaceThatExistInK8s);
         createK8sNamespace(freshNamespace);
 
-        deleteDeactivatedNamespaces.deleteDeactivatedNamespaces(scheduledExecution());
+        deleteDeactivatedNamespaces.syncAndCleanup(scheduledExecution());
 
         assertThat(Namespace.findByIdOptional(namespaceThatDoesNotExistInK8s.id)).isEmpty();
         assertThat(Namespace.findByIdOptional(namespaceThatExistInK8s.id)).isEmpty();
@@ -49,7 +58,38 @@ class DeleteDeactivatedNamespacesTest {
 
         assertThat(k8sClient.namespaces().withName(namespaceThatExistInK8s.name).get()).isNull();
         assertThat(k8sClient.namespaces().withName(freshNamespace.name).get()).isNotNull();
+    }
 
+    @Test
+    void syncDatabaseWithKubernetesNamespaces() {
+        Namespace namespaceThatExistsInBothPlaces = persistNamespaceWithCustomOCreationDate("inBothPlacesAndOldEnough", Instant.now().minus(15, MINUTES));
+        createK8sNamespace(namespaceThatExistsInBothPlaces);
+
+        Namespace inBothPlacesButNotOldEnough = persistNamespaceWithCustomOCreationDate("inBothPlacesButNotOldEnough", Instant.now());
+        createK8sNamespace(inBothPlacesButNotOldEnough);
+
+        Namespace namespaceThatExistOnlyInK8s = new Namespace();
+        namespaceThatExistOnlyInK8s.name = "namespaceThatExistOnlyInK8s";
+        createK8sNamespace(namespaceThatExistOnlyInK8s);
+        Namespace freshNamespaceOnlyInDb = persistNamespaceWithCustomOCreationDate("freshNamespaceOnlyInDb", Instant.now());
+        persistNamespaceWithCustomOCreationDate("oldNamespaceOnlyInDb", Instant.now().minus(15, MINUTES));
+
+        deleteDeactivatedNamespaces.syncAndCleanup(scheduledExecution());
+
+        assertThat(Namespace.getAll())
+                .extracting(namespace -> namespace.name)
+                .containsExactlyInAnyOrder(namespaceThatExistsInBothPlaces.name,
+                        inBothPlacesButNotOldEnough.name,
+                        freshNamespaceOnlyInDb.name);
+
+        assertThat(k8sClient.namespaces()
+                .list()
+                .getItems()
+                .stream()
+                .map(ns -> ns.getMetadata().getName()))
+                .containsExactlyInAnyOrder(inBothPlacesButNotOldEnough.name,
+                        namespaceThatExistsInBothPlaces.name,
+                        namespaceThatExistOnlyInK8s.name);
     }
 
     private void createK8sNamespace(Namespace namespaceThatExistInK8s) {
@@ -81,7 +121,16 @@ class DeleteDeactivatedNamespacesTest {
         };
     }
 
-    private static Namespace persistNamespace(String name, Instant activatedUntil) {
+    private static int counter = 1;
+
+    private static Namespace persistNamespaceWithCustomOCreationDate(String name, Instant creationDate) {
+        Namespace namespace = Namespace.create(name, Instant.now());
+        namespace.id = new ObjectId((int) creationDate.getEpochSecond(), ++counter);
+        namespace.persist();
+        return namespace;
+    }
+
+    private static Namespace persistNamespaceWithActivatedUntil(String name, Instant activatedUntil) {
         Namespace namespace = Namespace.create(name, activatedUntil);
 
         namespace.persist();

@@ -42,6 +42,10 @@ public class Namespace extends PanacheMongoEntityBase {
         return count();
     }
 
+    public static List<Namespace> getAll() {
+        return findAll().list();
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
