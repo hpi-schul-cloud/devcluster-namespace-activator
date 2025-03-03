@@ -26,6 +26,9 @@ public class DeleteDeactivatedNamespaces {
     @ConfigProperty(name = "namespace.sync-db-k8s.removeDeletedNamespacesFromDatabase", defaultValue = "true")
     boolean removeDeletedNamespacesFromDatabase;
 
+    @ConfigProperty(name = "namespace.sync-db-k8s.namespacesNotToRemove", defaultValue = "main")
+    List<String> namespacesNotToDelete;
+
     public DeleteDeactivatedNamespaces(KubernetesClient kubernetesClient) {
         this.kubernetesClient = kubernetesClient;
     }
@@ -62,15 +65,19 @@ public class DeleteDeactivatedNamespaces {
         List<Namespace> namespacesToDelete = Namespace.findByActivatedUntilOlderThan(xDaysAgo);
         logger.info("found namespaces to delete: " + namespacesToDelete.stream().map(ns -> ns.name).toList());
         for (Namespace namespaceFromDb : namespacesToDelete) {
-            logger.info("deleting namespace: " + namespaceFromDb.name + " it's last activation time was: " + namespaceFromDb.activatedUntil);
-            io.fabric8.kubernetes.api.model.Namespace k8sNamespace = kubernetesClient.namespaces().withName(namespaceFromDb.name).get();
-            if (k8sNamespace != null) {
-                kubernetesClient.namespaces().withName(namespaceFromDb.name).delete();
-                namespaceFromDb.delete();
-                logger.info("deleted namespace in k8s and db: " + namespaceFromDb.name);
-            } else {
-                namespaceFromDb.delete();
-                logger.info("namespace " + namespaceFromDb.name + " not found, deleted it only from db");
+            if (namespacesNotToDelete.contains(namespaceFromDb.name)) {
+                logger.warn("attempted to delete protected namespace: " + namespaceFromDb.name);
+            } else{
+                logger.info("deleting namespace: " + namespaceFromDb.name + " it's last activation time was: " + namespaceFromDb.activatedUntil);
+                io.fabric8.kubernetes.api.model.Namespace k8sNamespace = kubernetesClient.namespaces().withName(namespaceFromDb.name).get();
+                if (k8sNamespace != null) {
+                    kubernetesClient.namespaces().withName(namespaceFromDb.name).delete();
+                    namespaceFromDb.delete();
+                    logger.info("deleted namespace in k8s and db: " + namespaceFromDb.name);
+                } else {
+                    namespaceFromDb.delete();
+                    logger.info("namespace " + namespaceFromDb.name + " not found, deleted it only from db");
+                }
             }
         }
         logger.info("finished deleting namespaces");

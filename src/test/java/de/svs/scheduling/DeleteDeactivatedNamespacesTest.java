@@ -43,10 +43,12 @@ class DeleteDeactivatedNamespacesTest {
         Instant instantToBeDeleted = Instant.now().minus(300, DAYS);
         Instant justNow = Instant.now();
 
+        Namespace protectedNamespace = persistNamespaceWithActivatedUntil("main", instantToBeDeleted);
         Namespace namespaceThatDoesNotExistInK8s = persistNamespaceWithActivatedUntil("namespaceThatDoesNotExistInK8s", instantToBeDeleted);
         Namespace namespaceThatExistInK8s = persistNamespaceWithActivatedUntil("namespaceThatExistInK8s", instantToBeDeleted);
         Namespace freshNamespace = persistNamespaceWithActivatedUntil("freshNamespace", justNow);
 
+        createK8sNamespace(protectedNamespace);
         createK8sNamespace(namespaceThatExistInK8s);
         createK8sNamespace(freshNamespace);
 
@@ -55,9 +57,11 @@ class DeleteDeactivatedNamespacesTest {
         assertThat(Namespace.findByIdOptional(namespaceThatDoesNotExistInK8s.id)).isEmpty();
         assertThat(Namespace.findByIdOptional(namespaceThatExistInK8s.id)).isEmpty();
         assertThat(Namespace.findByIdOptional(freshNamespace.id)).isNotEmpty();
+        assertThat(Namespace.findByIdOptional(protectedNamespace.id)).isNotEmpty();
 
         assertThat(k8sClient.namespaces().withName(namespaceThatExistInK8s.name).get()).isNull();
         assertThat(k8sClient.namespaces().withName(freshNamespace.name).get()).isNotNull();
+        assertThat(k8sClient.namespaces().withName(protectedNamespace.name).get()).isNotNull();
     }
 
     @Test
