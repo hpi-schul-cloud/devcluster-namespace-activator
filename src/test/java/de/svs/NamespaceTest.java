@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import java.time.Instant;
 import java.util.List;
 
+import static java.time.temporal.ChronoUnit.DAYS;
 import static java.time.temporal.ChronoUnit.MINUTES;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -48,6 +49,24 @@ class NamespaceTest {
         List<Namespace> byActivatedUntilOlderThan = Namespace.findByActivatedUntilOlderThan(fourMinutesAgo);
 
         assertThat(byActivatedUntilOlderThan).extracting(ns -> ns.name).containsOnly(fiveMinutesAgoNamespace);
+    }
+
+    @Test
+    public void testUpdateActivatedUntilIfLater() {
+        Instant now = Instant.now();
+        Instant laterInstant = now.plus(1, DAYS);
+        Namespace ns = persistNamespace("gurke", now);
+        ns.updateActivatedUntilIfLater(laterInstant);
+        assertThat(ns.activatedUntil).isEqualTo(laterInstant);
+    }
+
+    @Test
+    public void testUpdateActivatedUntilWhenCurrentIsLater() {
+        Instant now = Instant.now();
+        Instant earlierInstant = now.minus(1, DAYS);
+        Namespace ns = persistNamespace("gummi", now);
+        ns.updateActivatedUntilIfLater(earlierInstant);
+        assertThat(ns.activatedUntil).isEqualTo(now);
     }
 
     private static Namespace persistNamespace(String name, Instant activatedUntil) {

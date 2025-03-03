@@ -66,7 +66,7 @@ public class NamespaceController {
         final String message;
         if (nsOp.isPresent()) {
             Namespace namespaceEntity = nsOp.get();
-            namespaceEntity.activatedUntil = activatedUntil;
+            namespaceEntity.updateActivatedUntilIfLater(activatedUntil);
             namespaceEntity.update();
             message = "namespace " + namespace + " is now activated until " + activatedUntil;
             pollNamespace = true;
@@ -109,9 +109,8 @@ public class NamespaceController {
         Optional<Namespace> namespaceEntity = Namespace.findByName(namespace);
         if (namespaceEntity.isPresent()) {
             logger.info("extending activation time of " + namespace);
-            Instant newActivatedUntil = getActivatedUntil();
             Namespace ns = namespaceEntity.get();
-            ns.activatedUntil = (ns.activatedUntil.isAfter(newActivatedUntil) ? ns.activatedUntil : newActivatedUntil);
+            ns.updateActivatedUntilIfLater(getActivatedUntil());
             ns.update();
             return RestMulti.fromMultiData(namespaceActivationWaiter.waitForNamespaceToBecomeAvailable(namespace, dto.getMaxWaitTimeInSeconds()))
                     .status(200)

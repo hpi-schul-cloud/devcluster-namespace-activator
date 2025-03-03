@@ -25,6 +25,10 @@ public class Namespace extends PanacheMongoEntityBase {
         return namespace;
     }
 
+    public void updateActivatedUntilIfLater(Instant activatedUntil) {
+        this.activatedUntil = activatedUntil.isAfter(this.activatedUntil) ? activatedUntil : this.activatedUntil;
+    }
+
     public static Optional<Namespace> findByName(String name) {
         return find("name", name).singleResultOptional();
     }
