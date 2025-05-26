@@ -67,7 +67,7 @@ public class DeleteDeactivatedNamespaces {
         for (Namespace namespaceFromDb : namespacesToDelete) {
             if (namespacesNotToDelete.contains(namespaceFromDb.name)) {
                 logger.warn("attempted to delete protected namespace: " + namespaceFromDb.name);
-            } else{
+            } else {
                 logger.info("deleting namespace: " + namespaceFromDb.name + " it's last activation time was: " + namespaceFromDb.activatedUntil);
                 io.fabric8.kubernetes.api.model.Namespace k8sNamespace = kubernetesClient.namespaces().withName(namespaceFromDb.name).get();
                 if (k8sNamespace != null) {

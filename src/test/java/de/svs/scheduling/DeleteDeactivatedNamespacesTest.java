@@ -16,6 +16,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
+import java.util.Set;
+import java.util.function.Predicate;
 
 import static java.time.temporal.ChronoUnit.DAYS;
 import static java.time.temporal.ChronoUnit.MINUTES;
@@ -32,10 +34,23 @@ class DeleteDeactivatedNamespacesTest {
     @Inject
     KubernetesClient k8sClient;
 
+    private static final Set<String> namespacesToIgnore = Set.of("default", "kube-system", "kube-public", "kube-node-lease");
+    private static final Predicate<String> ignoreDefaultNamespaces = namespaceName -> !namespacesToIgnore.contains(namespaceName);
+
+
     @BeforeEach
     public void beforeEach() {
         Namespace.deleteAll();
-        k8sClient.namespaces().delete();
+
+        k8sClient.namespaces()
+                .list()
+                .getItems()
+                .stream()
+                .map(ns -> ns.getMetadata().getName())
+                .filter(ignoreDefaultNamespaces)
+                .forEach(namespaceName -> {
+                    k8sClient.namespaces().withName(namespaceName).delete();
+                });
     }
 
     @Test
@@ -90,7 +105,8 @@ class DeleteDeactivatedNamespacesTest {
                 .list()
                 .getItems()
                 .stream()
-                .map(ns -> ns.getMetadata().getName()))
+                .map(ns -> ns.getMetadata().getName())
+                .filter(ignoreDefaultNamespaces))
                 .containsExactlyInAnyOrder(inBothPlacesButNotOldEnough.name,
                         namespaceThatExistsInBothPlaces.name,
                         namespaceThatExistOnlyInK8s.name);
