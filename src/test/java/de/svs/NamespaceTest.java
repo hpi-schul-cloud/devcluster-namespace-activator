@@ -2,7 +2,7 @@ package de.svs;
 
 import io.quarkus.test.common.WithTestResource;
 import io.quarkus.test.junit.QuarkusTest;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
@@ -16,8 +16,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 @WithTestResource(QuarkusMongoDbTestResource.ContainerResource.class)
 class NamespaceTest {
 
-    @BeforeEach
-    public void beforeEach() {
+    @AfterEach
+    public void afterEach() {
         Namespace.deleteAll();
     }
 

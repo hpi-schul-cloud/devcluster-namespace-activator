@@ -44,9 +44,9 @@ class DeleteDeactivatedNamespacesTest {
         Instant justNow = Instant.now();
 
         Namespace protectedNamespace = persistNamespaceWithActivatedUntil("main", instantToBeDeleted);
-        Namespace namespaceThatDoesNotExistInK8s = persistNamespaceWithActivatedUntil("namespaceThatDoesNotExistInK8s", instantToBeDeleted);
-        Namespace namespaceThatExistInK8s = persistNamespaceWithActivatedUntil("namespaceThatExistInK8s", instantToBeDeleted);
-        Namespace freshNamespace = persistNamespaceWithActivatedUntil("freshNamespace", justNow);
+        Namespace namespaceThatDoesNotExistInK8s = persistNamespaceWithActivatedUntil("namespace-that-does-not-exist-in-k8s", instantToBeDeleted);
+        Namespace namespaceThatExistInK8s = persistNamespaceWithActivatedUntil("namespace-that-exist-in-k8s", instantToBeDeleted);
+        Namespace freshNamespace = persistNamespaceWithActivatedUntil("fresh-namespace", justNow);
 
         createK8sNamespace(protectedNamespace);
         createK8sNamespace(namespaceThatExistInK8s);
@@ -66,17 +66,17 @@ class DeleteDeactivatedNamespacesTest {
 
     @Test
     void syncDatabaseWithKubernetesNamespaces() {
-        Namespace namespaceThatExistsInBothPlaces = persistNamespaceWithCustomOCreationDate("inBothPlacesAndOldEnough", Instant.now().minus(15, MINUTES));
+        Namespace namespaceThatExistsInBothPlaces = persistNamespaceWithCustomOCreationDate("in-both-places-and-old-enough", Instant.now().minus(15, MINUTES));
         createK8sNamespace(namespaceThatExistsInBothPlaces);
 
-        Namespace inBothPlacesButNotOldEnough = persistNamespaceWithCustomOCreationDate("inBothPlacesButNotOldEnough", Instant.now());
+        Namespace inBothPlacesButNotOldEnough = persistNamespaceWithCustomOCreationDate("in-both-places-but-not-old-enough", Instant.now());
         createK8sNamespace(inBothPlacesButNotOldEnough);
 
         Namespace namespaceThatExistOnlyInK8s = new Namespace();
-        namespaceThatExistOnlyInK8s.name = "namespaceThatExistOnlyInK8s";
+        namespaceThatExistOnlyInK8s.name = "namespace-that-exist-only-in-k8s";
         createK8sNamespace(namespaceThatExistOnlyInK8s);
-        Namespace freshNamespaceOnlyInDb = persistNamespaceWithCustomOCreationDate("freshNamespaceOnlyInDb", Instant.now());
-        persistNamespaceWithCustomOCreationDate("oldNamespaceOnlyInDb", Instant.now().minus(15, MINUTES));
+        Namespace freshNamespaceOnlyInDb = persistNamespaceWithCustomOCreationDate("fresh-namespace-only-in-db", Instant.now());
+        persistNamespaceWithCustomOCreationDate("old-namespace-only-in-db", Instant.now().minus(15, MINUTES));
 
         deleteDeactivatedNamespaces.syncAndCleanup(scheduledExecution());
 
