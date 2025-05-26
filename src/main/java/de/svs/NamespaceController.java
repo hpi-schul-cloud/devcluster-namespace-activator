@@ -1,12 +1,17 @@
 package de.svs;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import de.svs.status.StatusDto;
 import io.quarkus.qute.CheckedTemplate;
 import io.quarkus.qute.TemplateInstance;
 import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.unchecked.Unchecked;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
+import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.sse.OutboundSseEvent;
+import jakarta.ws.rs.sse.Sse;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
 import org.jboss.resteasy.reactive.RestMulti;
@@ -21,6 +26,9 @@ public class NamespaceController {
 
     private static final Logger logger = Logger.getLogger(NamespaceController.class);
 
+    @Inject
+    ObjectMapper objectMapper;
+
     @ConfigProperty(name = "namespace.activationHours", defaultValue = "48")
     int activationHours;
 
@@ -29,6 +37,9 @@ public class NamespaceController {
 
     @Inject
     NamespaceActivationWaiter namespaceActivationWaiter;
+
+    @Context
+    Sse sse;
 
     @CheckedTemplate
     public static class Templates {
@@ -95,9 +106,14 @@ public class NamespaceController {
             ne.name = namespace;
             ne.activatedUntil = getActivatedUntil();
             ne.persist();
-            return RestMulti.fromMultiData(namespaceActivationWaiter.waitForNamespaceToBecomeAvailable(namespace, dto.getMaxWaitTimeInSeconds()))
-                    .status(201)
-                    .build();
+
+            return RestMulti.fromMultiData(namespaceActivationWaiter.waitForNamespaceToBecomeAvailable3(namespace, dto.getMaxWaitTimeInSeconds())
+                    .map(Unchecked.function(status -> sse.newEventBuilder()
+                            .name(status.finalMessage() ? "namespace-status" : "...")
+                            .data(String.class, objectMapper.writeValueAsString(status))
+                            .comment(status.finalMessage() ? null : "still waiting")
+                            .build())
+                    )).status(201).build();
         }
     }
 
@@ -112,11 +128,15 @@ public class NamespaceController {
             Namespace ns = namespaceEntity.get();
             ns.updateActivatedUntilIfLater(getActivatedUntil());
             ns.update();
-            return RestMulti.fromMultiData(namespaceActivationWaiter.waitForNamespaceToBecomeAvailable(namespace, dto.getMaxWaitTimeInSeconds()))
-                    .status(200)
-                    .build();
+            return RestMulti.fromMultiData(namespaceActivationWaiter.waitForNamespaceToBecomeAvailable3(namespace, dto.getMaxWaitTimeInSeconds())
+                    .map(Unchecked.function(status -> sse.newEventBuilder()
+                            .name(status.finalMessage() ? "namespace-status" : "keepalive")
+                            .data(String.class, objectMapper.writeValueAsString(status))
+                            .comment(status.finalMessage() ? null : "still waiting")
+                            .build())
+                    )).status(200).build();
         } else {
-            logger.info("namespace (" + namespace+ ") to extend activation time has not been not found");
+            logger.info("namespace (" + namespace + ") to extend activation time has not been not found");
             return RestMulti.<OutboundSseEvent>fromMultiData(Multi.createFrom().empty())
                     .status(404)
                     .build();
@@ -143,7 +163,13 @@ public class NamespaceController {
     @GET()
     @RestStreamElementType(MediaType.TEXT_PLAIN)
     public Multi<OutboundSseEvent> status(@QueryParam("namespace") String namespace) {
-        return namespaceActivationWaiter.waitForNamespaceToBecomeAvailable(namespace, 60);
+        return RestMulti.fromMultiData(namespaceActivationWaiter.waitForNamespaceToBecomeAvailable3(namespace, 60)
+                .map(Unchecked.function(status -> sse.newEventBuilder()
+                        .name(status.finalMessage() ? "namespace-status" : "keepalive")
+                        .data(String.class, objectMapper.writeValueAsString(status))
+                        .comment(status.finalMessage() ? null : "still waiting")
+                        .build())
+                )).status(200).build();
     }
 
 

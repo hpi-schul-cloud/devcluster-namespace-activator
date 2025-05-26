@@ -34,7 +34,7 @@ class NamespaceControllerTest {
     public static void setup() {
         NamespaceActivationWaiter mock = Mockito.mock(NamespaceActivationWaiter.class);
         String namespace = any(String.class);
-        when(mock.waitForNamespaceToBecomeAvailable(namespace, anyInt())).thenReturn(Multi.createFrom().empty());
+        when(mock.waitForNamespaceToBecomeAvailable3(namespace, anyInt())).thenReturn(Multi.createFrom().empty());
         QuarkusMock.installMockForType(mock, NamespaceActivationWaiter.class);
     }
 
