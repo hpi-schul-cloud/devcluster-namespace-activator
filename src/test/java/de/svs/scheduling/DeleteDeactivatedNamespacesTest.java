@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
 import static java.time.temporal.ChronoUnit.DAYS;
@@ -80,7 +81,7 @@ class DeleteDeactivatedNamespacesTest {
     }
 
     @Test
-    void syncDatabaseWithKubernetesNamespaces() {
+    void syncDatabaseWithKubernetesNamespaces() throws InterruptedException {
         Namespace namespaceThatExistsInBothPlaces = persistNamespaceWithCustomOCreationDate("in-both-places-and-old-enough", Instant.now().minus(15, MINUTES));
         createK8sNamespace(namespaceThatExistsInBothPlaces);
 
@@ -94,6 +95,7 @@ class DeleteDeactivatedNamespacesTest {
         persistNamespaceWithCustomOCreationDate("old-namespace-only-in-db", Instant.now().minus(15, MINUTES));
 
         deleteDeactivatedNamespaces.syncAndCleanup(scheduledExecution());
+        TimeUnit.SECONDS.sleep(2);
 
         assertThat(Namespace.getAll())
                 .extracting(namespace -> namespace.name)
