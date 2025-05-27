@@ -27,6 +27,12 @@ public class TestK8sClient {
         System.out.println(k8sClient.namespaces().list().getItems().stream().map(Namespace::getMetadata).map(ObjectMeta::getName).collect(Collectors.toSet()));
         k8sClient.namespaces().delete();
         System.out.println(k8sClient.namespaces().list().getItems().stream().map(Namespace::getMetadata).map(ObjectMeta::getName).collect(Collectors.toSet()));
+        k8sClient.namespaces().withName("hugo").delete();
+        System.out.println(k8sClient.namespaces().list().getItems().stream().map(Namespace::getMetadata).map(ObjectMeta::getName).collect(Collectors.toSet()));
+        k8sClient.namespaces().delete();
+        System.out.println(k8sClient.namespaces().list().getItems().stream().map(Namespace::getMetadata).map(ObjectMeta::getName).collect(Collectors.toSet()));
+        k8sClient.namespaces().withName("default").delete();
+
     }
 
     private void createK8sNamespace(String name) {
