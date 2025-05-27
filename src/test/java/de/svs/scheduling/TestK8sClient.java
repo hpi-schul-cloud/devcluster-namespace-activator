@@ -25,18 +25,6 @@ public class TestK8sClient {
     @Test
     public void testK8sClient() throws InterruptedException {
         System.out.println(k8sClient.namespaces().list().getItems().stream().map(Namespace::getMetadata).map(ObjectMeta::getName).collect(Collectors.toSet()));
-        createK8sNamespace("fancy");
-        createK8sNamespace("gur");
-        createK8sNamespace("tol");
-        createK8sNamespace("mur");
-
-        System.out.println(k8sClient.namespaces().list().getItems().stream().map(Namespace::getMetadata).map(ObjectMeta::getName).collect(Collectors.toSet()));
-        TimeUnit.SECONDS.sleep(5);
-        System.out.println(k8sClient.namespaces().list().getItems().stream().map(Namespace::getMetadata).map(ObjectMeta::getName).collect(Collectors.toSet()));
-        k8sClient.namespaces().delete();
-        System.out.println(k8sClient.namespaces().list().getItems().stream().map(Namespace::getMetadata).map(ObjectMeta::getName).collect(Collectors.toSet()));
-        k8sClient.namespaces().withName("default").delete();
-        System.out.println(k8sClient.namespaces().list().getItems().stream().map(Namespace::getMetadata).map(ObjectMeta::getName).collect(Collectors.toSet()));
         k8sClient.namespaces().delete();
         System.out.println(k8sClient.namespaces().list().getItems().stream().map(Namespace::getMetadata).map(ObjectMeta::getName).collect(Collectors.toSet()));
     }

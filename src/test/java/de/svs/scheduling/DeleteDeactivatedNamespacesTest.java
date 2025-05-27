@@ -42,7 +42,7 @@ class DeleteDeactivatedNamespacesTest {
     @BeforeEach
     public void beforeEach() {
         Namespace.deleteAll();
-
+        k8sClient.namespaces().delete();
         k8sClient.namespaces()
                 .list()
                 .getItems()
@@ -95,7 +95,6 @@ class DeleteDeactivatedNamespacesTest {
         persistNamespaceWithCustomOCreationDate("old-namespace-only-in-db", Instant.now().minus(15, MINUTES));
 
         deleteDeactivatedNamespaces.syncAndCleanup(scheduledExecution());
-        TimeUnit.SECONDS.sleep(2);
 
         assertThat(Namespace.getAll())
                 .extracting(namespace -> namespace.name)
