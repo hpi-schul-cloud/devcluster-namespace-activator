@@ -35,13 +35,4 @@ public class TestK8sClient {
 
     }
 
-    private void createK8sNamespace(String name) {
-        io.fabric8.kubernetes.api.model.Namespace k8sNamespace = new NamespaceBuilder()
-                .withNewMetadata()
-                .withName(name)
-                .and()
-                .build();
-
-        k8sClient.resource(k8sNamespace).create();
-    }
 }
