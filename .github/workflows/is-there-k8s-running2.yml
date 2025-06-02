@@ -40,4 +40,4 @@ jobs:
       - name: "build image"
         id: build_image
         shell: bash
-        run:  minikube status; sleep 60; minikube status; kubectl get ns
+        run:  minikube status || true; sleep 60; minikube status  || true; kubectl get ns
