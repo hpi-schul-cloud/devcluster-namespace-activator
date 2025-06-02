@@ -40,4 +40,4 @@ jobs:
       - name: "build image"
         id: build_image
         shell: bash
-        run:  minikube status || true; sleep 60; minikube status  || true; kubectl get ns
+        run:  docker run --rm -d --name web docker.io/nginx; minikube status || true; sleep 60; minikube status  || true; kubectl get ns
