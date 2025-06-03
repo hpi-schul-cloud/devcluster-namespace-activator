@@ -88,7 +88,7 @@ public class NamespaceController {
 
 
     @POST
-    @Path("/createIfNotExistsAndWait2")
+    @Path("/createIfNotExistsAndWait")
     @Produces(MediaType.TEXT_PLAIN)
     @Blocking
     public void testBlocking(NamespaceDto dto, @Context RoutingContext ctx) {
