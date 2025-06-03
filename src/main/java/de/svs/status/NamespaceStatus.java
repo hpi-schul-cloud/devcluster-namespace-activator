@@ -2,13 +2,16 @@ package de.svs.status;
 
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.jboss.logging.Logger;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -25,13 +28,13 @@ public class NamespaceStatus {
     }
 
     public StatusDto get(String namespace) {
-        String versionAggregatorJson = "";
+        String versionAggregatorJson;
         String baseUri = "https://" + namespace + this.baseDomain;
         String uri = baseUri + "/version";
         logger.debug("doing something " + namespace);
-        HttpRequest request = HttpRequest.newBuilder(URI.create(uri)).GET().build();
+        HttpRequest request = HttpRequest.newBuilder(URI.create(uri)).timeout(Duration.ofSeconds(5)).GET().build();
         try (HttpClient httpClient = HttpClient.newHttpClient()) {
-            HttpResponse<String> response = httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString()).get(5, TimeUnit.SECONDS);
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             logger.debug("got response for " + namespace);
 
             if (response.statusCode() >= 200 && 300 >= response.statusCode()) {
@@ -46,14 +49,12 @@ public class NamespaceStatus {
                 return new StatusDto("/version returned 404 ...", baseUri, true, false);
             }
 
-        } catch (JsonProcessingException e) {
-            logger.error(e);
-            return new StatusDto("invalid json? " + versionAggregatorJson, baseUri, false, true);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return null;
-        } catch (ExecutionException | TimeoutException e) {
-            throw new RuntimeException(e);
+        } catch (IOException e) {
+            logger.error(e);
+            return new StatusDto("invalid json?", baseUri, false, true);
         }
     }
 }

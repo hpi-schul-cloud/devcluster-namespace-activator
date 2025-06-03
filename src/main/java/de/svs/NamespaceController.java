@@ -1,24 +1,25 @@
 package de.svs;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import de.svs.status.NamespaceStatus;
+import de.svs.status.StatusDto;
 import io.quarkus.qute.CheckedTemplate;
 import io.quarkus.qute.TemplateInstance;
-import io.smallrye.mutiny.Multi;
-import io.smallrye.mutiny.unchecked.Unchecked;
+import io.smallrye.common.annotation.Blocking;
+import io.vertx.core.http.HttpServerResponse;
+import io.vertx.ext.web.RoutingContext;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.sse.OutboundSseEvent;
-import jakarta.ws.rs.sse.Sse;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
-import org.jboss.resteasy.reactive.RestMulti;
-import org.jboss.resteasy.reactive.RestStreamElementType;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 @Path("/namespace")
 public class NamespaceController {
@@ -34,11 +35,8 @@ public class NamespaceController {
     @ConfigProperty(name = "externalHostName", defaultValue = "localhost")
     String externalHostName;
 
-    @Inject
-    NamespaceActivationWaiter namespaceActivationWaiter;
-
-    @Context
-    Sse sse;
+    @ConfigProperty(name = "baseDomain")
+    String baseDomain;
 
     @CheckedTemplate
     public static class Templates {
@@ -56,7 +54,7 @@ public class NamespaceController {
         return Templates.namespace(this.externalHostName,
                 namespace.orElse(""),
                 gotRedirectedFrom503.filter(Boolean::booleanValue)
-                        .map(b -> "You got here because your namespace appears to be deactivated")
+                        .map(_ -> "You got here because your namespace appears to be deactivated")
                         .orElse(null),
                 false);
     }
@@ -90,56 +88,96 @@ public class NamespaceController {
 
 
     @POST
-    @Path("/createIfNotExistsAndWait")
-    @RestStreamElementType(MediaType.TEXT_PLAIN)
-    public RestMulti<OutboundSseEvent> createIfNotExistsAndWait(NamespaceDto dto) {
+    @Path("/createIfNotExistsAndWait2")
+    @Produces(MediaType.TEXT_PLAIN)
+    @Blocking
+    public void testBlocking(NamespaceDto dto, @Context RoutingContext ctx) {
         String namespace = dto.getName();
+        var response = ctx.response();
+
         if (Namespace.findByName(namespace).isPresent()) {
             logger.info("attempted to create namespace " + namespace + " but already present, won't wait");
-            return RestMulti.<OutboundSseEvent>fromMultiData(Multi.createFrom().empty())
-                    .status(304)
-                    .build();
+            response.setStatusCode(304).end("already exists\n");
         } else {
             logger.info("creating namespace " + namespace + ", will wait");
+
             Namespace ne = new Namespace();
             ne.name = namespace;
             ne.activatedUntil = getActivatedUntil();
             ne.persist();
 
-            return RestMulti.fromMultiData(namespaceActivationWaiter.waitForNamespaceToBecomeAvailable3(namespace, dto.getMaxWaitTimeInSeconds())
-                    .map(Unchecked.function(status -> sse.newEventBuilder()
-                            .name(status.finalMessage() ? "namespace-status" : "...")
-                            .data(String.class, objectMapper.writeValueAsString(status))
-                            .comment(status.finalMessage() ? null : "still waiting")
-                            .build())
-                    )).status(201).build();
+            pollAndStreamStatus(dto, response);
         }
     }
 
     @POST
     @Path("/extendAndWait")
-    @RestStreamElementType(MediaType.TEXT_PLAIN)
-    public RestMulti<OutboundSseEvent> extendAndWait(NamespaceDto dto) {
+    @Produces(MediaType.TEXT_PLAIN)
+    @Blocking
+    public void extendAndWait(NamespaceDto dto, @Context RoutingContext ctx) {
         String namespace = dto.getName();
         Optional<Namespace> namespaceEntity = Namespace.findByName(namespace);
+        HttpServerResponse response = ctx.response();
         if (namespaceEntity.isPresent()) {
             logger.info("extending activation time of " + namespace);
             Namespace ns = namespaceEntity.get();
             ns.updateActivatedUntilIfLater(getActivatedUntil());
             ns.update();
-            return RestMulti.fromMultiData(namespaceActivationWaiter.waitForNamespaceToBecomeAvailable3(namespace, dto.getMaxWaitTimeInSeconds())
-                    .map(Unchecked.function(status -> sse.newEventBuilder()
-                            .name(status.finalMessage() ? "namespace-status" : "keepalive")
-                            .data(String.class, objectMapper.writeValueAsString(status))
-                            .comment(status.finalMessage() ? null : "still waiting")
-                            .build())
-                    )).status(200).build();
+            pollAndStreamStatus(dto, response);
         } else {
             logger.info("namespace (" + namespace + ") to extend activation time has not been not found");
-            return RestMulti.<OutboundSseEvent>fromMultiData(Multi.createFrom().empty())
-                    .status(404)
-                    .build();
+            response.setStatusCode(404);
+            response.end();
         }
+    }
+
+    @Path("/status")
+    @GET()
+    @Produces(MediaType.TEXT_PLAIN)
+    @Blocking
+    public void status(@QueryParam("namespace") String namespace, @Context RoutingContext ctx) {
+        NamespaceDto dto = new NamespaceDto();
+        dto.setName(namespace);
+        dto.setMaxWaitTimeInSeconds(120);
+        pollAndStreamStatus(dto, ctx.response());
+    }
+
+    private void pollAndStreamStatus(NamespaceDto dto, HttpServerResponse response) {
+        response.setChunked(true);
+        response.putHeader("Content-Type", "text/plain");
+
+        int delayInSeconds = 2;
+        int maxWaitTimeInSeconds = dto.getMaxWaitTimeInSeconds();
+        int maxTries = maxWaitTimeInSeconds / delayInSeconds;
+
+        for (int i = 0; i < maxTries; i++) {
+            try {
+                StatusDto status = new NamespaceStatus(objectMapper, baseDomain).get(dto.getName());
+                String json = objectMapper.writeValueAsString(status);
+                response.write(json + "\n");
+
+                if (status.finalMessage()) {
+                    response.write("done\n");
+                    response.end();
+                    return;
+                } else {
+                    TimeUnit.SECONDS.sleep(delayInSeconds);
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                response.write("interrupted\n");
+                response.end();
+                return;
+            } catch (JsonProcessingException e) {
+                logger.error("Error during polling", e);
+                response.write("error: " + e.getMessage() + "\n");
+                response.end();
+                return;
+            }
+        }
+
+        response.write("timeout\n");
+        response.end();
     }
 
     @PUT
@@ -157,19 +195,5 @@ public class NamespaceController {
         logger.info("namespace " + dto.getName() + " is now activated until " + activatedUntil);
         return dto;
     }
-
-    @Path("/status")
-    @GET()
-    @RestStreamElementType(MediaType.TEXT_PLAIN)
-    public Multi<OutboundSseEvent> status(@QueryParam("namespace") String namespace) {
-        return RestMulti.fromMultiData(namespaceActivationWaiter.waitForNamespaceToBecomeAvailable3(namespace, 60)
-                .map(Unchecked.function(status -> sse.newEventBuilder()
-                        .name(status.finalMessage() ? "namespace-status" : "keepalive")
-                        .data(String.class, objectMapper.writeValueAsString(status))
-                        .comment(status.finalMessage() ? null : "still waiting")
-                        .build())
-                )).status(200).build();
-    }
-
 
 }

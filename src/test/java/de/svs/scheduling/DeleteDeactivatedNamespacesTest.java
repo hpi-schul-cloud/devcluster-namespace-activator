@@ -79,7 +79,7 @@ class DeleteDeactivatedNamespacesTest {
     }
 
     @Test
-    void syncDatabaseWithKubernetesNamespaces() throws InterruptedException {
+    void syncDatabaseWithKubernetesNamespaces() {
         Namespace namespaceThatExistsInBothPlaces = persistNamespaceWithCustomOCreationDate("in-both-places-and-old-enough", Instant.now().minus(15, MINUTES));
         createK8sNamespace(namespaceThatExistsInBothPlaces);
 

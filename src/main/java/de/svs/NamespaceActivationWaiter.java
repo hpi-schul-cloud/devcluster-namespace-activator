@@ -1,14 +1,11 @@
 package de.svs;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import de.svs.status.NamespaceStatus;
 import de.svs.status.StatusDto;
 import io.smallrye.mutiny.Multi;
-import io.smallrye.mutiny.unchecked.Unchecked;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.ws.rs.sse.OutboundSseEvent;
 import jakarta.ws.rs.sse.Sse;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
