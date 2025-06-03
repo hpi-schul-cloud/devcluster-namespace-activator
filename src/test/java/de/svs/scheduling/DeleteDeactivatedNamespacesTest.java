@@ -24,7 +24,7 @@ import static java.time.temporal.ChronoUnit.DAYS;
 import static java.time.temporal.ChronoUnit.MINUTES;
 import static org.assertj.core.api.Assertions.assertThat;
 
-@WithKubernetesTestServer
+@WithKubernetesTestServer(port = 32777)
 @QuarkusTest
 @WithTestResource(QuarkusMongoDbTestResource.ContainerResource.class)
 class DeleteDeactivatedNamespacesTest {

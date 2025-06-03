@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-@WithKubernetesTestServer
+@WithKubernetesTestServer(port = 32777)
 @QuarkusTest
 @WithTestResource(QuarkusMongoDbTestResource.ContainerResource.class)
 public class TestK8sClient {
