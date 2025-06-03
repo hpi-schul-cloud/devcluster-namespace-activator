@@ -3,12 +3,12 @@ package de.svs.scheduling;
 import de.svs.Namespace;
 import de.svs.QuarkusMongoDbTestResource;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
+import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.quarkus.scheduler.ScheduledExecution;
 import io.quarkus.scheduler.Trigger;
 import io.quarkus.test.common.WithTestResource;
 import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.kubernetes.client.WithKubernetesTestServer;
 import jakarta.inject.Inject;
 import org.bson.types.ObjectId;
 import org.jetbrains.annotations.NotNull;
@@ -17,14 +17,13 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import static java.time.temporal.ChronoUnit.DAYS;
 import static java.time.temporal.ChronoUnit.MINUTES;
 import static org.assertj.core.api.Assertions.assertThat;
 
-@WithKubernetesTestServer(port = 32777)
 @QuarkusTest
 @WithTestResource(QuarkusMongoDbTestResource.ContainerResource.class)
 class DeleteDeactivatedNamespacesTest {
@@ -42,7 +41,6 @@ class DeleteDeactivatedNamespacesTest {
     @BeforeEach
     public void beforeEach() {
         Namespace.deleteAll();
-        k8sClient.namespaces().delete();
         k8sClient.namespaces()
                 .list()
                 .getItems()
@@ -69,15 +67,15 @@ class DeleteDeactivatedNamespacesTest {
         createK8sNamespace(freshNamespace);
 
         deleteDeactivatedNamespaces.syncAndCleanup(scheduledExecution());
-
+        System.out.println(k8sClient.namespaces().list().getItems().stream().map(io.fabric8.kubernetes.api.model.Namespace::getMetadata).map(ObjectMeta::getName).collect(Collectors.toSet()));
         assertThat(Namespace.findByIdOptional(namespaceThatDoesNotExistInK8s.id)).isEmpty();
         assertThat(Namespace.findByIdOptional(namespaceThatExistInK8s.id)).isEmpty();
         assertThat(Namespace.findByIdOptional(freshNamespace.id)).isNotEmpty();
         assertThat(Namespace.findByIdOptional(protectedNamespace.id)).isNotEmpty();
 
-        assertThat(k8sClient.namespaces().withName(namespaceThatExistInK8s.name).get()).isNull();
-        assertThat(k8sClient.namespaces().withName(freshNamespace.name).get()).isNotNull();
-        assertThat(k8sClient.namespaces().withName(protectedNamespace.name).get()).isNotNull();
+        assertThat(isNamespaceDeletedOrTerminating(namespaceThatExistInK8s.name)).isTrue();
+        assertThat(isNamespaceExistingAndActive(freshNamespace.name)).isTrue();
+        assertThat(isNamespaceExistingAndActive(protectedNamespace.name)).isTrue();
     }
 
     @Test
@@ -106,11 +104,22 @@ class DeleteDeactivatedNamespacesTest {
                 .list()
                 .getItems()
                 .stream()
+                .filter(ns -> "Active".equalsIgnoreCase(ns.getStatus().getPhase()))
                 .map(ns -> ns.getMetadata().getName())
                 .filter(ignoreDefaultNamespaces))
                 .containsExactlyInAnyOrder(inBothPlacesButNotOldEnough.name,
                         namespaceThatExistsInBothPlaces.name,
                         namespaceThatExistOnlyInK8s.name);
+    }
+
+    private boolean isNamespaceDeletedOrTerminating(String name) {
+        io.fabric8.kubernetes.api.model.Namespace namespace = k8sClient.namespaces().withName(name).get();
+        return namespace == null || "Terminating".equalsIgnoreCase(namespace.getStatus().getPhase());
+    }
+
+    private boolean isNamespaceExistingAndActive(String name) {
+        io.fabric8.kubernetes.api.model.Namespace namespace = k8sClient.namespaces().withName(name).get();
+        return namespace != null && "Active".equalsIgnoreCase(namespace.getStatus().getPhase());
     }
 
     private void createK8sNamespace(Namespace namespaceThatExistInK8s) {

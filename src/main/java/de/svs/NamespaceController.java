@@ -1,7 +1,6 @@
 package de.svs;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import de.svs.status.StatusDto;
 import io.quarkus.qute.CheckedTemplate;
 import io.quarkus.qute.TemplateInstance;
 import io.smallrye.mutiny.Multi;

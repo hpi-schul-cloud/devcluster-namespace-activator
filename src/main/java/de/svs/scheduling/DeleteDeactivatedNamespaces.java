@@ -1,6 +1,7 @@
 package de.svs.scheduling;
 
 import de.svs.Namespace;
+import io.fabric8.kubernetes.api.model.StatusDetails;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.quarkus.scheduler.Scheduled;
 import io.quarkus.scheduler.ScheduledExecution;
