@@ -14,7 +14,7 @@ public class QuarkusMongoDbTestResource {
 
         @Override
         public Map<String, String> start() {
-            mongoContainer = new MongoDBContainer("mongo:latest")
+            mongoContainer = new MongoDBContainer("mongo:6")
                     .withExposedPorts(27017);
             mongoContainer.start();
 
