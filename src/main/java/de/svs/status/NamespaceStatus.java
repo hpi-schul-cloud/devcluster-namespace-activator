@@ -1,9 +1,11 @@
 package de.svs.status;
 
 
+import com.fasterxml.jackson.core.JacksonException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.jboss.logging.Logger;
 
 import java.io.IOException;
@@ -16,6 +18,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+@Slf4j
 public class NamespaceStatus {
 
     private static final Logger logger = Logger.getLogger(NamespaceStatus.class);
@@ -28,7 +31,7 @@ public class NamespaceStatus {
     }
 
     public StatusDto get(String namespace) {
-        String versionAggregatorJson;
+        String versionAggregatorJson = "";
         String baseUri = "https://" + namespace + this.baseDomain;
         String uri = baseUri + "/version";
         logger.debug("doing something " + namespace);
@@ -52,9 +55,11 @@ public class NamespaceStatus {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return null;
-        } catch (IOException e) {
-            logger.error(e);
+        } catch (JacksonException e) {
+            logger.warn("unable to process json: " + versionAggregatorJson, e);
             return new StatusDto("invalid json?", baseUri, false, true);
+        } catch (IOException e) {
+            return new StatusDto("/version is not yet available", baseUri, false, false);
         }
     }
 }
