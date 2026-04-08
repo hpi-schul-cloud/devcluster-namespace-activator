@@ -146,5 +146,23 @@ public class NamespaceController {
         return namespaceActivationWaiter.waitForNamespaceToBecomeAvailable(namespace, 60);
     }
 
+    @Path("/{namespace}/active")
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    public NamespaceActiveResponse isNamespaceActive(@PathParam("namespace") String namespace) {
+        return Namespace.findByName(namespace)
+                .map(ns -> {
+                    int active = ns.activatedUntil.isAfter(Instant.now()) ? 1 : 0;
+                    return new NamespaceActiveResponse(ns.name, ns.activatedUntil, active, 1 - active);
+                })
+                .orElseThrow(() -> new NotFoundException("Namespace " + namespace + " not found"));
+    }
+
+    /**
+     * @param active   1 if namespace is active, 0 otherwise.
+     * @param inactive inverse of active (1 if inactive, 0 if active).
+     *                 Both must be int (not boolean) because KEDA's metrics-api scaler only accepts numeric values.
+     */
+    public record NamespaceActiveResponse(String name, Instant activatedUntil, int active, int inactive) {}
 
 }

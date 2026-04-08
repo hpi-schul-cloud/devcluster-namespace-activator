@@ -12,12 +12,14 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
+import jakarta.ws.rs.NotFoundException;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
 import static java.time.temporal.ChronoUnit.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.within;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -130,5 +132,48 @@ class NamespaceControllerTest {
         assertThat(nsByName.get().activatedUntil).isCloseTo(activatedUntil, within(1, MILLIS));
         assertThat(multi.getStatus()).isEqualTo(200);
         subscriber.assertCompleted().awaitItems(0).assertItems();
+    }
+
+    @Test
+    void isNamespaceActiveReturnsActiveForFutureActivatedUntil() {
+        String namespaceName = UUID.randomUUID().toString();
+        Instant activatedUntil = Instant.now().plus(1, DAYS);
+        Namespace namespace = new Namespace();
+        namespace.name = namespaceName;
+        namespace.activatedUntil = activatedUntil;
+        namespace.persist();
+
+        NamespaceController.NamespaceActiveResponse response = namespaceController.isNamespaceActive(namespaceName);
+
+        assertThat(response.name()).isEqualTo(namespaceName);
+        assertThat(response.activatedUntil()).isCloseTo(activatedUntil, within(1, MILLIS));
+        assertThat(response.active()).isEqualTo(1);
+        assertThat(response.inactive()).isEqualTo(0);
+    }
+
+    @Test
+    void isNamespaceActiveReturnsInactiveForPastActivatedUntil() {
+        String namespaceName = UUID.randomUUID().toString();
+        Instant activatedUntil = Instant.now().minus(1, DAYS);
+        Namespace namespace = new Namespace();
+        namespace.name = namespaceName;
+        namespace.activatedUntil = activatedUntil;
+        namespace.persist();
+
+        NamespaceController.NamespaceActiveResponse response = namespaceController.isNamespaceActive(namespaceName);
+
+        assertThat(response.name()).isEqualTo(namespaceName);
+        assertThat(response.activatedUntil()).isCloseTo(activatedUntil, within(1, MILLIS));
+        assertThat(response.active()).isEqualTo(0);
+        assertThat(response.inactive()).isEqualTo(1);
+    }
+
+    @Test
+    void isNamespaceActiveThrowsNotFoundForUnknownNamespace() {
+        String namespaceName = UUID.randomUUID().toString();
+
+        assertThatThrownBy(() -> namespaceController.isNamespaceActive(namespaceName))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining(namespaceName);
     }
 }
