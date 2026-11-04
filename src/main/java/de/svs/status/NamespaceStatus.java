@@ -3,6 +3,7 @@ package de.svs.status;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.ws.rs.BadRequestException;
 import org.jboss.logging.Logger;
 
 import java.net.URI;
@@ -12,10 +13,12 @@ import java.net.http.HttpResponse;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.regex.Pattern;
 
 public class NamespaceStatus {
 
     private static final Logger logger = Logger.getLogger(NamespaceStatus.class);
+    private static final Pattern NAMESPACE_LABEL = Pattern.compile("[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?");
     private final ObjectMapper objectMapper;
     private final String baseDomain;
 
@@ -24,7 +27,14 @@ public class NamespaceStatus {
         this.baseDomain = baseDomain;
     }
 
+    public static void validateNamespace(String namespace) {
+        if (namespace == null || !NAMESPACE_LABEL.matcher(namespace).matches()) {
+            throw new BadRequestException("Invalid namespace");
+        }
+    }
+
     public StatusDto get(String namespace) {
+        validateNamespace(namespace);
         String versionAggregatorJson = "";
         String baseUri = "https://" + namespace + this.baseDomain;
         String uri = baseUri + "/version";
