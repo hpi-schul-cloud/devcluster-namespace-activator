@@ -28,6 +28,7 @@ public class NamespaceActivationWaiter {
     int delayInSeconds;
 
     Multi<OutboundSseEvent> waitForNamespaceToBecomeAvailable(String namespace, int maxWaitTimeInSeconds) {
+        NamespaceStatus.validateNamespace(namespace);
         int delayInSeconds = 2;
         int maxTries = maxWaitTimeInSeconds / delayInSeconds;
         AtomicBoolean finalMessageReceived = new AtomicBoolean();
